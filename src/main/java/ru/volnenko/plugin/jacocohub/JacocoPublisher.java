@@ -93,14 +93,10 @@ public class JacocoPublisher extends AbstractMojo {
                     if ("INSTRUCTION".equals(type)) {
                         counter.setInstructionCovered(Integer.parseInt(covered));
                         counter.setInstructionMissed(Integer.parseInt(missed));
-//                        counter.instructionTotal = counter.instructionCovered + counter.instructionMissed;
-//                        counter.instructionPercent = counter.instructionCovered / counter.instructionTotal * 100;
                     }
                     if ("BRANCH".equals(type)) {
                         counter.setBranchCovered(Integer.parseInt(covered));
                         counter.setBranchMissed(Integer.parseInt(missed));
-//                        counter.branchTotal = counter.branchCovered + counter.branchMissed;
-//                        counter.branchPercent = counter.branchCovered / counter.branchTotal * 100;
                     }
                     if ("LINE".equals(type)) {
                         counter.setLineCovered(Integer.parseInt(covered));
@@ -143,8 +139,9 @@ public class JacocoPublisher extends AbstractMojo {
 
             final CloseableHttpClient httpclient = HttpClients.createDefault();
             final String jsonString = JSON_MAPPER.writeValueAsString(counter);
-            final String url = jacocohub + "/api/v1/result/jacoco";
-            final HttpPost httpPost = new HttpPost();
+            final String url = jacocohub + "/api/v1/result/jacoco/publish";
+            final HttpPost httpPost = new HttpPost(url);
+            httpPost.addHeader("Content-Type", ContentType.APPLICATION_JSON.toString());
             System.out.println(jsonString);
             final StringEntity entity = new StringEntity(jsonString, ContentType.APPLICATION_JSON);
             httpPost.setEntity(entity);
@@ -158,8 +155,6 @@ public class JacocoPublisher extends AbstractMojo {
                     System.out.println("SUCCESS! JACOCO RESULTS PUBLISHED...");
                     System.out.println();
                 }
-            } catch (final IOException e) {
-                e.printStackTrace();
             } finally {
                 try {
                     httpclient.close();
@@ -167,10 +162,8 @@ public class JacocoPublisher extends AbstractMojo {
                     e.printStackTrace();
                 }
             }
-
-//            counter.percent = (counter.instructionPercent + counter.branchPercent) / 2;
         } catch (final Exception e) {
-            System.err.println("Error! Jacoco results parse failed...");
+            System.err.println("Error! Jacoco send result failed...");
             e.printStackTrace();
         }
     }

@@ -100,12 +100,10 @@
                 <groupId>ru.volnenko.maven.plugin</groupId>
                 <artifactId>jacocohub-maven-plugin</artifactId>
                 <version>1.0.0</version>
-                <configuration>
-
-                </configuration>
                 <executions>
                     <execution>
                         <id>publish</id>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>publish</goal>
                         </goals>
