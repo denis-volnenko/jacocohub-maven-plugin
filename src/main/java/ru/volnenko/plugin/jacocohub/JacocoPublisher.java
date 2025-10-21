@@ -20,6 +20,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import ru.volnenko.plugin.jacocohub.dto.JacocoResultDto;
+import ru.volnenko.plugin.jacocohub.enumerated.ArtifactType;
 
 import java.io.File;
 import java.io.IOException;
@@ -53,6 +54,16 @@ public class JacocoPublisher extends AbstractMojo {
     @Setter
     @Parameter(property = "version")
     private String version;
+
+    @Getter
+    @Setter
+    @Parameter(property = "master")
+    private String branch = "master";
+
+    @Getter
+    @Setter
+    @Parameter(property = "type")
+    private ArtifactType type = ArtifactType.APPLICATION;
 
     private static final XmlMapper XML_MAPPER = new XmlMapper();
 
@@ -111,32 +122,34 @@ public class JacocoPublisher extends AbstractMojo {
             }
 
             if (artifactId == null || artifactId.isEmpty()) {
-                counter.setArtifactId(project.getArtifactId());
+                if (project != null) counter.setArtifactId(project.getArtifactId());
             } else {
                 counter.setArtifactId(artifactId);
             }
 
             if (groupId == null || groupId.isEmpty()) {
-                counter.setGroupId(project.getGroupId());
+                if (project != null) counter.setGroupId(project.getGroupId());
             } else {
                 counter.setGroupId(groupId);
             }
 
             if (version == null || version.isEmpty()) {
-                counter.setVersion(project.getVersion());
+                if (project != null) counter.setVersion(project.getVersion());
             } else {
                 counter.setVersion(version);
             }
 
-            counter.setType("APPLICATION");
+            counter.setType(type);
 
             final CloseableHttpClient httpclient = HttpClients.createDefault();
             final String jsonString = JSON_MAPPER.writeValueAsString(counter);
-            final HttpPost httpPost = new HttpPost(jacocohub + "/api/v1/result/jacoco");
+            final String url = jacocohub + "/api/v1/result/jacoco";
+            final HttpPost httpPost = new HttpPost();
             System.out.println(jsonString);
             final StringEntity entity = new StringEntity(jsonString, ContentType.APPLICATION_JSON);
             httpPost.setEntity(entity);
 
+            System.out.println("CALL: " + url);
             try (final CloseableHttpResponse response = httpclient.execute(httpPost)) {
                 final int statusCode = response.getStatusLine().getStatusCode();
                 final String responseBody = EntityUtils.toString(response.getEntity());
@@ -158,6 +171,7 @@ public class JacocoPublisher extends AbstractMojo {
 //            counter.percent = (counter.instructionPercent + counter.branchPercent) / 2;
         } catch (final Exception e) {
             System.err.println("Error! Jacoco results parse failed...");
+            e.printStackTrace();
         }
     }
 

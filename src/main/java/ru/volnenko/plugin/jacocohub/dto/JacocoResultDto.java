@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.Setter;
+import ru.volnenko.plugin.jacocohub.enumerated.ArtifactType;
 
 @Getter
 @Setter
@@ -26,7 +27,7 @@ public final class JacocoResultDto {
     private String groupId = "";
 
     @NonNull
-    private String type = "APPLICATION";
+    private ArtifactType type = ArtifactType.APPLICATION;
 
     @NonNull
     private String branch = "master";
@@ -60,5 +61,7 @@ public final class JacocoResultDto {
     private double classMissed;
 
     private double classCovered;
+
+
 
 }
