@@ -1,15 +1,28 @@
 package ru.volnenko.plugin.jacocohub;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.SneakyThrows;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 import ru.volnenko.plugin.jacocohub.dto.JacocoResultDto;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -17,6 +30,33 @@ import java.util.List;
 public class JacocoPublisher extends AbstractMojo {
 
     private static final String JACOCO = "./target/site/jacoco/jacoco.xml";
+
+    @Getter
+    @Setter
+    @Parameter(property = "jacocohub")
+    private String jacocohub = "http://localhost:8080";
+
+    @Parameter(defaultValue = "${project}", required = true, readonly = true)
+    private MavenProject project;
+
+    @Getter
+    @Setter
+    @Parameter(property = "artifactId")
+    private String artifactId;
+
+    @Getter
+    @Setter
+    @Parameter(property = "groupId")
+    private String groupId;
+
+    @Getter
+    @Setter
+    @Parameter(property = "version")
+    private String version;
+
+    private static final XmlMapper XML_MAPPER = new XmlMapper();
+
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -27,8 +67,7 @@ public class JacocoPublisher extends AbstractMojo {
         }
         try {
             final JacocoResultDto counter = new JacocoResultDto();
-            final XmlMapper mapper = new XmlMapper();
-            final List<LinkedHashMap> root = mapper.readValue(new File(JACOCO), List.class);
+            final List<LinkedHashMap> root = XML_MAPPER.readValue(new File(JACOCO), List.class);
             for (final LinkedHashMap item: root) {
                 if (item.containsKey("type")) {
                     final Object typeObject = item.get("type");
@@ -70,6 +109,52 @@ public class JacocoPublisher extends AbstractMojo {
                     }
                 }
             }
+
+            if (artifactId == null || artifactId.isEmpty()) {
+                counter.setArtifactId(project.getArtifactId());
+            } else {
+                counter.setArtifactId(artifactId);
+            }
+
+            if (groupId == null || groupId.isEmpty()) {
+                counter.setGroupId(project.getGroupId());
+            } else {
+                counter.setGroupId(groupId);
+            }
+
+            if (version == null || version.isEmpty()) {
+                counter.setVersion(project.getVersion());
+            } else {
+                counter.setVersion(version);
+            }
+
+            counter.setType("APPLICATION");
+
+            final CloseableHttpClient httpclient = HttpClients.createDefault();
+            final String jsonString = JSON_MAPPER.writeValueAsString(counter);
+            final HttpPost httpPost = new HttpPost(jacocohub + "/api/v1/result/jacoco");
+            System.out.println(jsonString);
+            final StringEntity entity = new StringEntity(jsonString, ContentType.APPLICATION_JSON);
+            httpPost.setEntity(entity);
+
+            try (final CloseableHttpResponse response = httpclient.execute(httpPost)) {
+                final int statusCode = response.getStatusLine().getStatusCode();
+                final String responseBody = EntityUtils.toString(response.getEntity());
+                if (statusCode == 200) {
+                    System.out.println();
+                    System.out.println("SUCCESS! JACOCO RESULTS PUBLISHED...");
+                    System.out.println();
+                }
+            } catch (final IOException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    httpclient.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
 //            counter.percent = (counter.instructionPercent + counter.branchPercent) / 2;
         } catch (final Exception e) {
             System.err.println("Error! Jacoco results parse failed...");

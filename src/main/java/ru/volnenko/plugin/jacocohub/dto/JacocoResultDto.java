@@ -11,10 +11,10 @@ import lombok.Setter;
 public final class JacocoResultDto {
 
     @NonNull
-    private String parentGroup = "";
+    private String parentGroupId = "";
 
     @NonNull
-    private String parentArtifact = "";
+    private String parentArtifactId = "";
 
     @NonNull
     private String parentVersion = "";
@@ -23,7 +23,7 @@ public final class JacocoResultDto {
     private String parentType = "APPLICATION";
 
     @NonNull
-    private String group = "";
+    private String groupId = "";
 
     @NonNull
     private String type = "APPLICATION";
@@ -32,7 +32,7 @@ public final class JacocoResultDto {
     private String branch = "master";
 
     @NonNull
-    private String artifact = "";
+    private String artifactId = "";
 
     @NonNull
     private String version = "";
